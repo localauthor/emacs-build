@@ -1,0 +1,174 @@
+#!/bin/sh
+
+## Modified version of https://github.com/mclear-tools/build-emacs-macos
+
+## Derived from https://github.com/renard/emacs-build-macosx
+## Patches from https://github.com/d12frosted/homebrew-emacs-plus
+## See also https://github.com/jimeh/build-emacs-for-macos
+
+# ======================================================
+# Exit on non-zero status
+# See https://www.gnu.org/software/bash/manual/html_node/The-Set-Builtin.html
+# ======================================================
+set -e
+
+# ======================================================
+# Set Variables
+# ======================================================
+
+ROOT_DIR=~/Repos/build-emacs/
+BUILD_DIR=~/tmp/build-emacs/
+SRC_DIR=~/Repos/emacs/
+
+# ======================================================
+# Use Homebrew libxml
+# ======================================================
+
+export LDFLAGS="-L/opt/homebrew/opt/libxml2/lib"
+export CPPFLAGS="-I/opt/homebrew/opt/libxml2/include"
+
+# ======================================================
+# Start with a clean build
+# ======================================================
+
+rm -rf ${BUILD_DIR}
+mkdir ${BUILD_DIR}
+
+cd ${SRC_DIR}
+
+# ======================================================
+# Input for version otherwise default to master
+# ======================================================
+
+if test -n "$1"; then
+    commit="$1"
+else
+    commit="origin/master"
+    git checkout master
+    git pull
+fi
+
+git archive --format tar $commit | tar -C ${BUILD_DIR} -xvf -
+
+REV=`git log -n 1 --no-color --pretty='format:%h' ${commit}`
+TIMESTAMP=`git log -n 1 --no-color --pretty='format:%at' ${commit}`
+PATCH_LIST=`find ${ROOT_DIR}/patches -name '*.patch'`
+cd ${BUILD_DIR}
+
+
+# ======================================================
+# Apply Patches
+# ======================================================
+
+for f in ${PATCH_LIST}; do
+    patch -p1 -i $f
+done
+
+
+
+# ======================================================
+# Autogen/copy_autogen
+# ======================================================
+
+
+# Generate config files & include versioning info
+./autogen.sh
+
+# ======================================================
+# Use Homebrew libxml pkgconfig
+# ======================================================
+
+export PKG_CONFIG_PATH="/opt/homebrew/opt/libxml2/lib/pkgconfig"
+
+# ======================================================
+# Set Compile Flags
+# ======================================================
+
+# Use Clang for slightly faster builds
+# See https://leeifrankjaw.github.io/articles/clang_vs_gcc_for_emacs.html
+# See https://alibabatech.medium.com/gcc-vs-clang-llvm-an-in-depth-comparison-of-c-c-compilers-899ede2be378
+
+CFLAGS="-g -O2"
+export CC=clang
+export OBJC=clang
+
+
+# ======================================================
+# Inscribe Version in Info files
+# ======================================================
+
+for f in $STRINGS; do
+    sed -e "s/@version@/@version@ $VERS/" -i '' $f
+done
+
+
+# ======================================================
+# Configure emacs
+# ======================================================
+
+
+# Here we set config options for emacs
+# For more info see config-options.txt
+
+./configure \
+    --with-ns \
+    --with-native-compilation\
+    --with-xwidgets \
+    --with-mailutils \
+    --with-imagemagick \
+    --without-compress-install \
+    --without-dbus \
+    --libexecdir=/Applications/Emacs.app/Contents/MacOS/libexec
+    
+# ======================================================
+# Build and install everything
+# ======================================================
+
+
+## Check number of processors & use as many as we can!
+NCPU=$(getconf _NPROCESSORS_ONLN)
+
+## Send output to log file using tee
+## See https://stackoverflow.com/a/60432203/6277148
+make bootstrap -j$NCPU | tee bootstrap-log.txt || exit 1 && make install -j$NCPU | tee build-log.txt
+
+
+# ======================================================
+# Copy C Source Code
+# ======================================================
+
+
+# Copy C source files to Emacs
+cp -r ${BUILD_DIR}/src ${BUILD_DIR}/nextstep/Emacs.app/Contents/Resources/
+
+
+# ======================================================
+# Move new app
+# ======================================================
+
+# # move build to applications folder
+mv /Applications/Emacs.app /Applications/Emacs-Prior-Build.app
+mv ${BUILD_DIR}/nextstep/Emacs.app /Applications/Emacs.app
+
+# ======================================================
+# Change icon
+# ======================================================
+
+# Copy new icon to emacs (currently using a big sur icon)
+# See https://github.com/d12frosted/homebrew-emacs-plus/issues/419
+
+cp ${ROOT_DIR}/emacs-big-sur.icns /Applications/Emacs.app/Contents/Resources/Emacs.icns
+
+
+# ======================================================
+# Create symlinks to usr/local/bin
+# ======================================================
+
+# ln -fs /Applications/Emacs.app/Contents/MacOS/Emacs /usr/local/bin/emacs
+# ln -fs /Applications/Emacs.app/Contents/MacOS/bin/emacsclient /usr/local/bin/emacsclient
+# ln -fs /Applications/Emacs.app/Contents/MacOS/bin/ebrowse /usr/local/bin/ebrowse
+# ln -fs /Applications/Emacs.app/Contents/MacOS/bin/etags /usr/local/bin/etags
+# ln -fs /Applications/Emacs.app/Contents/MacOS/bin/ctags /usr/local/bin/ctags
+
+
+echo "DONE!"
