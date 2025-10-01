@@ -12,20 +12,15 @@
 # ======================================================
 set -e
 
+
 # ======================================================
 # Set Variables
 # ======================================================
 
-ROOT_DIR=~/Repos/build-emacs/
-BUILD_DIR=~/tmp/build-emacs/
-SRC_DIR=~/Repos/emacs/
+ROOT_DIR=~/repos/emacs-build/
+BUILD_DIR=~/tmp/emacs-build/
+SRC_DIR=~/repos/emacs/
 
-# ======================================================
-# Use Homebrew libxml
-# ======================================================
-
-export LDFLAGS="-L/opt/homebrew/opt/libxml2/lib"
-export CPPFLAGS="-I/opt/homebrew/opt/libxml2/include"
 
 # ======================================================
 # Start with a clean build
@@ -36,6 +31,7 @@ mkdir ${BUILD_DIR}
 
 cd ${SRC_DIR}
 
+
 # ======================================================
 # Input for version otherwise default to master
 # ======================================================
@@ -43,16 +39,14 @@ cd ${SRC_DIR}
 if test -n "$1"; then
     commit="$1"
 else
-    commit="origin/master"
-    git checkout master
-    git pull
+    commit="master"
 fi
+
+git checkout $commit
+git pull
 
 git archive --format tar $commit | tar -C ${BUILD_DIR} -xvf -
 
-REV=`git log -n 1 --no-color --pretty='format:%h' ${commit}`
-TIMESTAMP=`git log -n 1 --no-color --pretty='format:%at' ${commit}`
-PATCH_LIST=`find ${ROOT_DIR}/patches -name '*.patch'`
 cd ${BUILD_DIR}
 
 
@@ -60,25 +54,20 @@ cd ${BUILD_DIR}
 # Apply Patches
 # ======================================================
 
+PATCH_LIST=`find ${ROOT_DIR}/patches -name '*.patch'`
+
 for f in ${PATCH_LIST}; do
     patch -p1 -i $f
 done
 
 
-
 # ======================================================
-# Autogen/copy_autogen
+# Autogen
 # ======================================================
 
-
-# Generate config files & include versioning info
+# Generate config files
 ./autogen.sh
 
-# ======================================================
-# Use Homebrew libxml pkgconfig
-# ======================================================
-
-export PKG_CONFIG_PATH="/opt/homebrew/opt/libxml2/lib/pkgconfig"
 
 # ======================================================
 # Set Compile Flags
@@ -94,61 +83,83 @@ export OBJC=clang
 
 
 # ======================================================
-# Inscribe Version in Info files
-# ======================================================
-
-for f in $STRINGS; do
-    sed -e "s/@version@/@version@ $VERS/" -i '' $f
-done
-
-
-# ======================================================
 # Configure emacs
 # ======================================================
-
 
 # Here we set config options for emacs
 # For more info see config-options.txt
 
+# if test -n "$2"; then
+#     configs="$2"
+# fi
+
 ./configure \
     --with-ns \
-    --with-native-compilation\
+    --with-native-compilation \
+    --without-compress-install \
     --with-xwidgets \
     --with-mailutils \
     --with-imagemagick \
-    --without-compress-install \
     --without-dbus \
-    --libexecdir=/Applications/Emacs.app/Contents/MacOS/libexec
-    
+    --with-mps
+
+
 # ======================================================
 # Build and install everything
 # ======================================================
 
-
 ## Check number of processors & use as many as we can!
 NCPU=$(getconf _NPROCESSORS_ONLN)
 
-## Send output to log file using tee
-## See https://stackoverflow.com/a/60432203/6277148
-make bootstrap -j$NCPU | tee bootstrap-log.txt || exit 1 && make install -j$NCPU | tee build-log.txt
+make bootstrap -j$NCPU || exit 1 && make install -j$NCPU
+
+# make -j$NCPU || exit 1 && make install -j$NCPU
 
 
 # ======================================================
 # Copy C Source Code
 # ======================================================
 
-
 # Copy C source files to Emacs
 cp -r ${BUILD_DIR}/src ${BUILD_DIR}/nextstep/Emacs.app/Contents/Resources/
+
+
+# ======================================================
+# Inject PATH into Info.plist
+# So emacs can find gcc and libgccjit
+# without setting LIBRARY_PATH in earlyinit.el
+# ======================================================
+
+alias pbd=/usr/libexec/PlistBuddy
+export emacsapp="${BUILD_DIR}/nextstep/Emacs.app"
+export infoplist="${emacsapp}/Contents/Info.plist"
+
+pbd -c "Add :LSEnvironment dict" "${infoplist}"
+pbd -c "Add :LSEnvironment:PATH string" "${infoplist}"
+pbd -c "Set :LSEnvironment:PATH $(echo "$PATH")" "${infoplist}"
+pbd -c "Print :LSEnvironment" "${infoplist}"
+touch ${emacsapp}
 
 
 # ======================================================
 # Move new app
 # ======================================================
 
-# # move build to applications folder
-mv /Applications/Emacs.app /Applications/Emacs-Prior-Build.app
-mv ${BUILD_DIR}/nextstep/Emacs.app /Applications/Emacs.app
+if [ "${commit}" = "master" ] && [ -e /Applications/Emacs.app ]; then
+    cd /Applications
+    PRIOR=$(stat -f %SB-%N -t %m-%d-%y Emacs.app)
+    mv Emacs.app ${PRIOR}
+    mv ${PRIOR} '/Applications/Emacs Prior Builds/'
+fi
+
+if [ "${commit}" = "master" ]; then
+    APP_NAME=Emacs
+else
+    APP_NAME=Emacs-${commit//\//-} # replace forward slash with dash
+fi
+
+mv ${BUILD_DIR}/nextstep/Emacs.app /Applications/${APP_NAME}.app
+
 
 # ======================================================
 # Change icon
@@ -157,18 +168,7 @@ mv ${BUILD_DIR}/nextstep/Emacs.app /Applications/Emacs.app
 # Copy new icon to emacs (currently using a big sur icon)
 # See https://github.com/d12frosted/homebrew-emacs-plus/issues/419
 
-cp ${ROOT_DIR}/emacs-big-sur.icns /Applications/Emacs.app/Contents/Resources/Emacs.icns
-
-
-# ======================================================
-# Create symlinks to usr/local/bin
-# ======================================================
-
-# ln -fs /Applications/Emacs.app/Contents/MacOS/Emacs /usr/local/bin/emacs
-# ln -fs /Applications/Emacs.app/Contents/MacOS/bin/emacsclient /usr/local/bin/emacsclient
-# ln -fs /Applications/Emacs.app/Contents/MacOS/bin/ebrowse /usr/local/bin/ebrowse
-# ln -fs /Applications/Emacs.app/Contents/MacOS/bin/etags /usr/local/bin/etags
-# ln -fs /Applications/Emacs.app/Contents/MacOS/bin/ctags /usr/local/bin/ctags
+cp ${ROOT_DIR}/emacs-big-sur.icns /Applications/${APP_NAME}.app/Contents/Resources/Emacs.icns
 
 
 echo "DONE!"

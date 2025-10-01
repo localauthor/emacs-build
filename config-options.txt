@@ -1,6 +1,6 @@
-`configure' configures GNU Emacs 29.0.50 to adapt to many kinds of systems.
+'configure' configures GNU Emacs 30.0.50 to adapt to many kinds of systems.
 
-Usage: ./configure [OPTION]... [VAR=VALUE]...
+Usage: $0 [OPTION]... [VAR=VALUE]...
 
 To assign environment variables (e.g., CC, CFLAGS...), specify them as
 VAR=VALUE.  See below for descriptions of some of the useful variables.
@@ -12,22 +12,22 @@ Configuration:
       --help=short        display options specific to this package
       --help=recursive    display the short help of all the included packages
   -V, --version           display version information and exit
-  -q, --quiet, --silent   do not print `checking ...' messages
+  -q, --quiet, --silent   do not print 'checking ...' messages
       --cache-file=FILE   cache test results in FILE [disabled]
-  -C, --config-cache      alias for `--cache-file=config.cache'
+  -C, --config-cache      alias for '--cache-file=config.cache'
   -n, --no-create         do not create output files
-      --srcdir=DIR        find the sources in DIR [configure dir or `..']
+      --srcdir=DIR        find the sources in DIR [configure dir or '..']
 
 Installation directories:
   --prefix=PREFIX         install architecture-independent files in PREFIX
-                          [/usr/local]
+                          [$ac_default_prefix]
   --exec-prefix=EPREFIX   install architecture-dependent files in EPREFIX
                           [PREFIX]
 
-By default, `make install' will install all the files in
-`/usr/local/bin', `/usr/local/lib' etc.  You can specify
-an installation prefix other than `/usr/local' using `--prefix',
-for instance `--prefix=$HOME'.
+By default, 'make install' will install all the files in
+'$ac_default_prefix/bin', '$ac_default_prefix/lib' etc.  You can specify
+an installation prefix other than '$ac_default_prefix' using '--prefix',
+for instance '--prefix=\$HOME'.
 
 For better control, use the options below.
 
@@ -53,6 +53,7 @@ Fine tuning of the installation directories:
   --pdfdir=DIR            pdf documentation [DOCDIR]
   --psdir=DIR             ps documentation [DOCDIR]
 
+
 Program names:
   --program-prefix=PREFIX            prepend PREFIX to installed program names
   --program-suffix=SUFFIX            append SUFFIX to installed program names
@@ -65,6 +66,8 @@ X features:
 System types:
   --build=BUILD     configure for building on BUILD [guessed]
   --host=HOST       cross-compile to build programs to run on HOST [BUILD]
+
+
 
 Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
@@ -90,7 +93,6 @@ Optional Features:
   --disable-build-details Make the build more deterministic by omitting host
                           names, time stamps, etc. from the output.
   --disable-largefile     omit support for large files
-  --disable-year2038      omit support for timestamps past the year 2038
   --enable-gcc-warnings[=TYPE]
                           control generation of GCC warnings. The TYPE 'yes'
                           means to fail if any warnings are issued;
@@ -107,10 +109,14 @@ Optional Features:
   --enable-cross-guesses={conservative|risky}
                           specify policy for cross-compilation guesses
   --disable-acl           do not support ACLs
+  --disable-xattr         do not support extended attributes
+  --disable-year2038      don't support timestamps after 2038
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-ndk-path         find Android libraries in these directories
+  --with-ndk-cxx          name of the C++ compiler included with the NDK
   --without-all           omit almost all features and build small executable
                           with minimal dependencies
   --with-mailutils        rely on GNU Mailutils, so that the --without-pop
@@ -119,7 +125,7 @@ Optional Packages:
   --with-pop              Support POP mail retrieval if Emacs movemail is used
                           (not recommended, as Emacs movemail POP is
                           insecure). This is the default only on native
-                          MS-Windows.
+                          MS-Windows and Android.
   --with-kerberos         support Kerberos-authenticated POP
   --with-kerberos5        support Kerberos version 5 authenticated POP
   --with-hesiod           support Hesiod to get the POP server host
@@ -137,7 +143,7 @@ Optional Packages:
                           (VALUE one of: pdumper, unexec, none; default
                           pdumper)
   --with-x-toolkit=KIT    use an X toolkit (KIT one of: yes or gtk, gtk2,
-                          gtk3, lucid or athena, no)
+                          gtk3, lucid or athena, motif, no)
   --with-wide-int         prefer wide Emacs integers (typically 62-bit); on
                           32-bit hosts, this allows buffer and string size up
                           to 2GB, at the cost of 10% to 30% slowdown of Lisp
@@ -149,26 +155,29 @@ Optional Packages:
   --without-png           don't compile with PNG image support
   --without-rsvg          don't compile with SVG image support
   --without-webp          don't compile with WebP image support
+  --without-sqlite3       don't compile with sqlite3 support
   --without-lcms2         don't compile with Little CMS support
   --without-libsystemd    don't compile with libsystemd support
   --without-cairo         don't compile with Cairo drawing
+  --with-cairo-xcb        use XCB surfaces for Cairo support
   --without-xml2          don't compile with XML parsing support
   --with-imagemagick      compile with ImageMagick image support
   --without-native-image-api
                           don't use native image APIs (GDI+ on Windows)
-  --with-json             compile with native JSON support
+  --with-tree-sitter      compile with tree-sitter
   --without-xft           don't use XFT for anti aliased fonts
   --without-harfbuzz      don't use HarfBuzz for text shaping
   --without-libotf        don't use libotf for OpenType font support
   --without-m17n-flt      don't use m17n-flt for text shaping
   --without-toolkit-scroll-bars
-                          don't use Xaw3d/GTK toolkit scroll bars
+                          don't use Motif/Xaw3d/GTK toolkit scroll bars
   --without-xaw3d         don't use Xaw3d
   --without-xim           at runtime, default X11 XIM to off
   --without-xdbe          don't use X11 double buffering support
   --with-ns               use Nextstep (macOS Cocoa or GNUstep) windowing
                           system. On by default on macOS.
   --with-w32              use native MS Windows GUI in a Cygwin build
+  --with-pgtk             use GTK to support window systems other than X
   --without-gpm           don't use -lgpm for mouse support on a GNU/Linux
                           console
   --without-dbus          don't compile with D-Bus support
@@ -179,11 +188,15 @@ Optional Packages:
   --without-zlib          don't compile with zlib decompression support
   --without-modules       don't compile with dynamic modules support
   --without-threads       don't compile with elisp threading support
-  --with-native-compilation
-                          compile with Emacs Lisp native compiler support
   --with-cygwin32-native-compilation
                           use native compilation on 32-bit Cygwin
-  --with-xinput2          use version 2 of the X Input Extension for input
+  --without-xinput2       don't use version 2 of the X Input Extension for
+                          input
+  --with-small-ja-dic     generate a smaller-size Japanese dictionary
+  --with-android          cross-compile Android application package
+  --without-android-debug don't build Emacs as a debug package on Android
+  --with-shared-user-id=ID
+                          use the given shared user ID in Android builds
   --with-file-notification=LIB
                           use a file notification library (LIB one of: yes,
                           inotify, kqueue, gfile, w32, no)
@@ -203,6 +216,13 @@ Optional Packages:
                           where the command 'gnustep-config' does not work;
                           default $GNUSTEP_CONFIG_FILE, or
                           /etc/GNUstep/GNUstep.conf
+  --with-native-compilation[=TYPE]
+                          compile with Emacs Lisp native compiler support. The
+                          TYPE 'yes' (or empty) means to enable it and compile
+                          natively preloaded Lisp files; 'no' means to disable
+                          it; 'aot' will make the build process compile all
+                          the Lisp files in the tree natively ahead of time.
+                          (This will usually be quite slow.)
   --with-x                use the X Window System
   --without-libgmp        do not use the GNU Multiple Precision (GMP) library;
                           this is the default on systems lacking libgmp.
@@ -212,6 +232,14 @@ Optional Packages:
                           (use with caution on other systems).
 
 Some influential environment variables:
+  ANDROID_CC  The Android C cross-compiler.
+  SDK_BUILD_TOOLS
+              Name of directory holding Android SDK build-tools.
+  ANDROID_CFLAGS
+              Flags given to the Android C cross-compiler.
+  JAVAC       Java compiler path. Used for Android.
+  JARSIGNER   Java package signer path. Used for Android.
+  APKSIGNER   Android package signer path. Used for Android.
   CC          C compiler command
   CFLAGS      C compiler flags
   LDFLAGS     linker flags, e.g. -L<lib dir> if you have libraries in a
@@ -220,6 +248,8 @@ Some influential environment variables:
   CPPFLAGS    (Objective) C/C++ preprocessor flags, e.g. -I<include dir> if
               you have headers in a nonstandard directory <include dir>
   CPP         C preprocessor
+  CXX         C++ compiler command
+  CXXFLAGS    C++ compiler flags
   PKG_CONFIG  path to pkg-config utility
   PKG_CONFIG_PATH
               directories to add to pkg-config's search path
@@ -230,8 +260,6 @@ Some influential environment variables:
   XMKMF       Path to xmkmf, Makefile generator for X Window System
   OBJC        Objective C compiler command
   OBJCFLAGS   Objective C compiler flags
-  CXX         C++ compiler command
-  CXXFLAGS    C++ compiler flags
   RSVG_CFLAGS C compiler flags for RSVG, overriding pkg-config
   RSVG_LIBS   linker flags for RSVG, overriding pkg-config
   WEBP_CFLAGS C compiler flags for WEBP, overriding pkg-config
@@ -242,9 +270,6 @@ Some influential environment variables:
               linker flags for IMAGEMAGICK, overriding pkg-config
   GTK_CFLAGS  C compiler flags for GTK, overriding pkg-config
   GTK_LIBS    linker flags for GTK, overriding pkg-config
-  WEBKIT_CFLAGS
-              C compiler flags for WEBKIT, overriding pkg-config
-  WEBKIT_LIBS linker flags for WEBKIT, overriding pkg-config
   DBUS_CFLAGS C compiler flags for DBUS, overriding pkg-config
   DBUS_LIBS   linker flags for DBUS, overriding pkg-config
   GSETTINGS_CFLAGS
@@ -266,8 +291,10 @@ Some influential environment variables:
               C compiler flags for LIBSYSTEMD, overriding pkg-config
   LIBSYSTEMD_LIBS
               linker flags for LIBSYSTEMD, overriding pkg-config
-  JSON_CFLAGS C compiler flags for JSON, overriding pkg-config
-  JSON_LIBS   linker flags for JSON, overriding pkg-config
+  TREE_SITTER_CFLAGS
+              C compiler flags for TREE_SITTER, overriding pkg-config
+  TREE_SITTER_LIBS
+              linker flags for TREE_SITTER, overriding pkg-config
   KQUEUE_CFLAGS
               C compiler flags for KQUEUE, overriding pkg-config
   KQUEUE_LIBS linker flags for KQUEUE, overriding pkg-config
@@ -278,6 +305,17 @@ Some influential environment variables:
   CAIRO_CFLAGS
               C compiler flags for CAIRO, overriding pkg-config
   CAIRO_LIBS  linker flags for CAIRO, overriding pkg-config
+  CAIRO_XCB_CFLAGS
+              C compiler flags for CAIRO_XCB, overriding pkg-config
+  CAIRO_XCB_LIBS
+              linker flags for CAIRO_XCB, overriding pkg-config
+  WEBKIT_CFLAGS
+              C compiler flags for WEBKIT, overriding pkg-config
+  WEBKIT_LIBS linker flags for WEBKIT, overriding pkg-config
+  CAIRO_XLIB_CFLAGS
+              C compiler flags for CAIRO_XLIB, overriding pkg-config
+  CAIRO_XLIB_LIBS
+              linker flags for CAIRO_XLIB, overriding pkg-config
   FREETYPE_CFLAGS
               C compiler flags for FREETYPE, overriding pkg-config
   FREETYPE_LIBS
@@ -326,11 +364,9 @@ Some influential environment variables:
   LIBSECCOMP_LIBS
               linker flags for LIBSECCOMP, overriding pkg-config
 
-Use these variables to override the choices made by `configure' or to help
+Use these variables to override the choices made by 'configure' or to help
 it to find libraries and programs with nonstandard names/locations.
 
 Report bugs to <bug-gnu-emacs@gnu.org>.
 GNU Emacs home page: <https://www.gnu.org/software/emacs/>.
 General help using GNU software: <https://www.gnu.org/gethelp/>.
-
-1
