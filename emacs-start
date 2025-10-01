@@ -1,0 +1,26 @@
+#!/bin/zsh
+
+# from https://srijan.ch/running-multiple-emacs-daemons
+
+if [ "$1" != "" ];
+then
+    server_name="${1}"
+    args="${@:2}"
+else
+    server_name="emacs-start-daemon"
+    args=""
+fi
+
+if ! emacsclient -cns ${server_name} "${@:2}";
+then
+    if ! emacsclient -cns "server" "${@:2}";
+    then
+        emacs --daemon=${server_name}
+        echo ">> Server should have started. Trying to connect..."
+        emacsclient -cns ${server_name} "${@:2}"
+    fi
+fi
+
+# to bring focus to new frame
+open -a Emacs.app
+
