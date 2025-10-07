@@ -1,0 +1,9 @@
+#!/bin/zsh
+
+if ! emacsclient -s "emacs-start-daemon" -e '(intern server-name)'
+then
+    if ! emacsclient -s "server" -e '(intern server-name)'
+    then
+        emacs-start
+    fi
+fi

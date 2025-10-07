@@ -13,14 +13,24 @@ fi
 
 if ! emacsclient -cns ${server_name} "${@:2}";
 then
-    if ! emacsclient -cns "server" "${@:2}";
-    then
-        emacs --daemon=${server_name}
-        echo ">> Server should have started. Trying to connect..."
-        emacsclient -cns ${server_name} "${@:2}"
-    fi
+    emacs --daemon=${server_name}
+    echo ">> Server should have started. Trying to connect..."
+    emacsclient -cns ${server_name} "${@:2}"
 fi
-
 # to bring focus to new frame
 open -a Emacs.app
+
+
+# if ! emacsclient -cns ${server_name} "${@:2}";
+# then
+#     if ! emacsclient -cns "server" "${@:2}";
+#     then
+#         emacs --daemon=${server_name}
+#         echo ">> Server should have started. Trying to connect..."
+#         emacsclient -cns ${server_name} "${@:2}"
+#     fi
+# fi
+
+# # to bring focus to new frame
+# open -a Emacs.app
 

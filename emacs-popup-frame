@@ -1,0 +1,13 @@
+#!/bin/zsh
+
+SERV=$(emacs-server-name)
+
+if [ "$1" != "" ];
+then
+    func="${1}"
+fi
+
+emacsclient -s $SERV -e ${func}
+
+# yabai -m window --focus recent
+
